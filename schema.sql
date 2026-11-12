@@ -6,6 +6,9 @@ CREATE TABLE pay_periods (
     payment_date  TEXT NOT NULL,
     status        TEXT NOT NULL DEFAULT 'open'
                   CHECK (status IN ('open', 'processing', 'approved', 'paid', 'closed')),
+    CHECK (date(start_date) IS start_date),
+    CHECK (date(end_date) IS end_date),
+    CHECK (date(payment_date) IS payment_date),
     CHECK (end_date >= start_date),
     UNIQUE (frequency, start_date, end_date)
 );
