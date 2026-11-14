@@ -6,10 +6,10 @@ CREATE TABLE pay_periods (
     payment_date  TEXT NOT NULL,
     status        TEXT NOT NULL DEFAULT 'open'
                   CHECK (status IN ('open', 'processing', 'approved', 'paid', 'closed')),
+    CHECK (end_date >= start_date),
     CHECK (date(start_date) IS start_date),
     CHECK (date(end_date) IS end_date),
     CHECK (date(payment_date) IS payment_date),
-    CHECK (end_date >= start_date),
     UNIQUE (frequency, start_date, end_date)
 );
 
@@ -41,4 +41,35 @@ CREATE TABLE employees (
     CHECK (date(hire_date) IS hire_date),
     CHECK (termination_date IS NULL OR date(termination_date) IS termination_date),
     CHECK (termination_date IS NULL OR termination_date >= hire_date)
+);
+
+CREATE TABLE payslips (
+    payslip_id INTEGER PRIMARY KEY,
+
+    employee_id INTEGER NOT NULL,
+    pay_period_id INTEGER NOT NULL,
+
+    gross_pay_cents INTEGER NOT NULL,
+    fnpf_employee_cents INTEGER NOT NULL,
+    paye_cents INTEGER NOT NULL,
+    net_pay_cents INTEGER NOT NULL,
+
+    FOREIGN KEY (employee_id)
+        REFERENCES employees (employee_id),
+
+    FOREIGN KEY (pay_period_id)
+        REFERENCES pay_periods (pay_period_id),
+
+    -- One payslip per employee per pay period.
+    UNIQUE (employee_id, pay_period_id),
+
+    CHECK (
+        gross_pay_cents >= 0
+        AND fnpf_employee_cents >= 0
+        AND paye_cents >= 0
+        AND net_pay_cents >= 0
+    ),
+
+    -- Net pay must equal gross minus deductions.
+    CHECK (net_pay_cents = gross_pay_cents - fnpf_employee_cents - paye_cents)
 );
