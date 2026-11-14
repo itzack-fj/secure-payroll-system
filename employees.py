@@ -1,6 +1,6 @@
 import sqlite3
 
-from payroll import fnpf_employee_cents
+from payroll import fnpf_employee_cents, format_fjd
 
 
 def connect():
@@ -49,6 +49,29 @@ def create_payslip(employee_id, pay_period_id, gross_cents, paye_cents):
         conn.close()
 
 
+def show_payslip(employee_id, pay_period_id):
+    conn = connect()
+    try:
+        row = conn.execute(
+            "SELECT gross_pay_cents, fnpf_employee_cents, paye_cents, net_pay_cents "
+            "FROM payslips WHERE employee_id = ? AND pay_period_id = ?",
+            (employee_id, pay_period_id),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if row is None:
+        print("No payslip found")
+        return None
+
+    gross, fnpf, paye, net = row
+    print("Gross pay:    ", format_fjd(gross))
+    print("FNPF (staff): ", format_fjd(fnpf))
+    print("PAYE tax:     ", format_fjd(paye))
+    print("Net pay:      ", format_fjd(net))
+    return row
+
+
 if __name__ == "__main__":
     list_employees()
     print(find_employee_by_tin("000000001"))
@@ -64,3 +87,7 @@ if __name__ == "__main__":
             print(label, "-> created")
         except sqlite3.IntegrityError as error:
             print(label, "-> rejected:", error)
+
+    print()
+    show_payslip(1, 1)
+    show_payslip(999, 1)
