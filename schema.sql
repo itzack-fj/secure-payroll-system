@@ -90,3 +90,21 @@ CREATE TABLE users (
     -- An 'employee' account must be linked to a real employee.
     CHECK (role <> 'employee' OR employee_id IS NOT NULL)
 );
+
+CREATE TABLE audit_log (
+    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    user_id INTEGER,
+
+    action TEXT NOT NULL,
+
+    table_name TEXT,
+    row_id INTEGER,
+
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    details TEXT,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+);
