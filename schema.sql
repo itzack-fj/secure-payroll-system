@@ -73,3 +73,20 @@ CREATE TABLE payslips (
     -- Net pay must equal gross minus deductions.
     CHECK (net_pay_cents = gross_pay_cents - fnpf_employee_cents - paye_cents)
 );
+
+CREATE TABLE users (
+    user_id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('admin', 'accountant', 'employee')),
+    failed_attempts INTEGER NOT NULL DEFAULT 0 CHECK (failed_attempts >= 0),
+    is_locked INTEGER NOT NULL DEFAULT 0 CHECK (is_locked IN (0, 1)),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    employee_id INTEGER UNIQUE,
+
+    FOREIGN KEY (employee_id) REFERENCES employees (employee_id),
+
+    -- An 'employee' account must be linked to a real employee.
+    CHECK (role <> 'employee' OR employee_id IS NOT NULL)
+);
