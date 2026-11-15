@@ -1,5 +1,6 @@
 import sqlite3
 
+from audit import log_action
 from payroll import fnpf_employee_cents, format_fjd
 
 
@@ -31,20 +32,31 @@ def find_employee_by_tin(tin):
     return row
 
 
-def create_payslip(employee_id, pay_period_id, gross_cents, paye_cents):
+def create_payslip(employee_id, pay_period_id, gross_cents, paye_cents, acting_user_id=None):
     # PAYE is passed in for now. The real formula comes later, after we check FRCS's rules.
     fnpf_cents = fnpf_employee_cents(gross_cents)
     net_cents = gross_cents - fnpf_cents - paye_cents
 
     conn = connect()
     try:
-        conn.execute(
+        cursor = conn.execute(
             "INSERT INTO payslips "
             "(employee_id, pay_period_id, gross_pay_cents, fnpf_employee_cents, paye_cents, net_pay_cents) "
             "VALUES (?, ?, ?, ?, ?, ?)",
             (employee_id, pay_period_id, gross_cents, fnpf_cents, paye_cents, net_cents),
         )
-        conn.commit()
+        log_action(
+            conn,
+            acting_user_id,
+            "create_payslip",
+            "payslips",
+            cursor.lastrowid,
+            f"employee_id={employee_id}, pay_period_id={pay_period_id}",
+        )
+        conn.commit()          # payslip + audit row saved together
+    except Exception:
+        conn.rollback()        # if either fails, neither is saved
+        raise
     finally:
         conn.close()
 

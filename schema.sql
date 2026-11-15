@@ -108,3 +108,27 @@ CREATE TABLE audit_log (
     FOREIGN KEY (user_id)
         REFERENCES users(user_id)
 );
+
+CREATE TABLE audit_log (
+    audit_id INTEGER PRIMARY KEY,
+    user_id INTEGER,                       -- NULL allowed: failed logins by unknown usernames have no user
+    action TEXT NOT NULL,
+    table_name TEXT,
+    row_id INTEGER,
+    details TEXT,                          -- never put passwords, hashes or full TINs here
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- UTC
+    FOREIGN KEY (user_id) REFERENCES users (user_id)
+);
+
+-- Append-only: nobody can edit or delete log rows through normal SQL.
+CREATE TRIGGER audit_log_no_update
+BEFORE UPDATE ON audit_log
+BEGIN
+    SELECT RAISE(ABORT, 'audit_log is append-only');
+END;
+
+CREATE TRIGGER audit_log_no_delete
+BEFORE DELETE ON audit_log
+BEGIN
+    SELECT RAISE(ABORT, 'audit_log is append-only');
+END;
